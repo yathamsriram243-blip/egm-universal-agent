@@ -10,6 +10,9 @@ description: >-
 
 # EGM Review: Multi-Stage Verification Pipeline
 
+When running in Codex or ChatGPT Work, first read [Codex integration](../../docs/codex.md).
+In Claude Code or Cowork, read `${CLAUDE_PLUGIN_ROOT}/docs/claude.md` first.
+
 Orchestrates multi-stage design and code verification across specialized, stateless Goldfish personas.
 
 ## Delegation

@@ -10,6 +10,9 @@ description: >-
 
 # EGM Review Loop: Concurrent Subagent Dispatch Engine
 
+When running in Codex or ChatGPT Work, first read [Codex integration](../../docs/codex.md).
+In Claude Code or Cowork, read `${CLAUDE_PLUGIN_ROOT}/docs/claude.md` first.
+
 ## Overview
 
 This skill acts as the central orchestration engine driving the concurrent Goldfish

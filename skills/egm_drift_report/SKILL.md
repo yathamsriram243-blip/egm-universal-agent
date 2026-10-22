@@ -9,6 +9,9 @@ description: >-
 
 # EGM Drift Report: Specification-to-Code Drift Detector
 
+When running in Codex or ChatGPT Work, first read [Codex integration](../../docs/codex.md).
+In Claude Code or Cowork, read `${CLAUDE_PLUGIN_ROOT}/docs/claude.md` first.
+
 ## Overview
 
 When specifications and codebase reality diverge, systems accumulate hidden debt and developer

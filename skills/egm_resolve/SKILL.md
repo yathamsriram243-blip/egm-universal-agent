@@ -10,6 +10,9 @@ description: >-
 
 # EGM Resolve: Interactive Triage & Patch Verification Engine
 
+When running in Codex or ChatGPT Work, first read [Codex integration](../../docs/codex.md).
+In Claude Code or Cowork, read `${CLAUDE_PLUGIN_ROOT}/docs/claude.md` first.
+
 ## Overview
 
 This skill operates within the primary Elephant context window to parse review findings
