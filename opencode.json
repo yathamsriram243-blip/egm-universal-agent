@@ -1,0 +1,26 @@
+{
+  "$schema": "https://opencode.ai/schema/v1/config.json",
+  "name": "egm",
+  "version": "0.1.0",
+  "description": "Elephant-Goldfish Model skills and review personas",
+  "skills": [
+    "skills/egm_brainstorm",
+    "skills/egm_draft",
+    "skills/egm_review",
+    "skills/egm_review_loop",
+    "skills/egm_resolve",
+    "skills/egm_drift_report",
+    "skills/egm_bootstrap"
+  ],
+  "agents": [
+    "agents/zoom_out.md",
+    "agents/comprehension.md",
+    "agents/design_critic.md",
+    "agents/implementation_readiness.md",
+    "agents/codebase_details.md",
+    "agents/structural.md",
+    "agents/style.md",
+    "agents/synthesizer.md",
+    "agents/bootstrap_orchestrator.md"
+  ]
+}

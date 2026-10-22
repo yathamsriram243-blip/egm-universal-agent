@@ -1,0 +1,24 @@
+---
+description: Elephant-Goldfish Model (EGM) Spec-Driven Development and Adversarial Review Rules
+globs: docs/designs/*.md, **/*README.md, **/*EGM.md
+alwaysApply: false
+---
+
+# Elephant-Goldfish Model (EGM) for Cursor
+
+When executing EGM workflows in Cursor:
+
+1. **Commands Available**:
+   - `/egm-brainstorm`: Zero-doc ideation with multi-lens shootdown swarm. See `skills/egm_brainstorm/SKILL.md`.
+   - `/egm-draft`: Section-by-section design spec compiler. See `skills/egm_draft/SKILL.md`.
+   - `/egm-review`: 4-stage review (Zoom Out -> Comprehension -> Critic -> Readiness). See `skills/egm_review/SKILL.md`.
+   - `/egm-review-loop`: Concurrent review subagent dispatch engine. See `skills/egm_review_loop/SKILL.md`.
+   - `/egm-resolve`: Interactive triage and patch verification. See `skills/egm_resolve/SKILL.md`.
+   - `/egm-drift-report`: Specification vs code drift report. See `skills/egm_drift_report/SKILL.md`.
+   - `/egm-bootstrap`: Blueprint & package contract generator. See `skills/egm_bootstrap/SKILL.md`.
+
+2. **Standard Review-Finding Contract (11 Fields)**:
+   All review findings must provide: `id`, `title`, `severity`, `category`, `location`, `evidence`, `reasoning`, `impact`, `recommendation`, `confidence`, `status`. See `resources/finding_contract.md`.
+
+3. **Subagent Personas**:
+   Read persona definitions from `agents/*.md` (`egm-zoom-out`, `egm-comprehension`, `egm-design`, `egm-implementation-readiness`, `egm-codebase-details`, `egm-structural`, `egm-style`, `egm-synthesizer`, `egm-bootstrap-orchestrator`).

@@ -10,16 +10,15 @@ description: >-
   /egm-draft.
 ---
 
-# EGM Brainstorm: Interactive Multi-Lens Ideation & Refinement
+# EGM Brainstorm: Zero-Document Ideation & Adversarial Multi-Lens Review
 
 ## Overview
 
 This skill acts as the upstream conversational brainstorming engine for the
 Elephant-Goldfish Model (EGM). It turns "half-baked" or raw concepts into
-hypotheses by combining **interactive clarifying questions** with an automated
-**Goldfish review**. The outcome is an iteratively refined RFC summary
-(`concepts_brief.md`) that leads directly into `/egm-draft` or review with
-peers.
+structured hypotheses by combining **interactive clarifying questions** with an automated
+**adversarial Goldfish review**. The outcome is an iteratively refined RFC summary
+(`concepts_brief.md`) that leads directly into `/egm-draft` or review with peers.
 
 ## Delegation
 
@@ -31,7 +30,10 @@ where your harness registers named subagents. Otherwise spawn a general-purpose
 subagent and tell it to read that persona file first. Pass the prompt verbatim
 and wait for the report. If your harness cannot nest subagents,
 use direct dispatch instead of the synthesizer. See `docs/harnesses.md`.
-If your harness has no subagent tool, stop and tell the user: a review in the same context is not a Goldfish review.
+
+**Fallback Protocol**: If subagent execution is unavailable or unsupported on the
+host agent, perform clearly labeled sequential reviews in the primary thread.
+Never claim concurrency or independence that did not occur.
 
 ## Execution Constraints (CRITICAL)
 
@@ -87,49 +89,14 @@ If your harness has no subagent tool, stop and tell the user: a review in the sa
 
 ## The Goldfish Brainstorming Lenses
 
-| Lens / Persona          | Core Objective          | Key Questions Challenged |
-| :---------------------- | :---------------------- | :----------------------- |
-| **Contrarian / YAGNI**  | Code & complexity       | *Why does this feature   |
-:                         : minimization            : need to exist? Can an    :
-:                         :                         : existing library,        :
-:                         :                         : open-source dependency,  :
-:                         :                         : API, or service solve    :
-:                         :                         : 90% of this problem      :
-:                         :                         : without writing new      :
-:                         :                         : code?*                   :
-| **Cost, Quota & Token   | Infrastructure & budget | *What is the peak QPS,   |
-: Economics**             : scaling                 : memory footprint,        :
-:                         :                         : database query load, or  :
-:                         :                         : LLM token budget? Will   :
-:                         :                         : this hit quota ceilings  :
-:                         :                         : at scale?*               :
-| **UX & Developer        | Usability & cognitive   | *Is the API/CLI          |
-: Ergonomics**            : overhead                : intuitive? Does it match :
-:                         :                         : ecosystem conventions?   :
-:                         :                         : Are error messages       :
-:                         :                         : actionable, or does it   :
-:                         :                         : add developer friction?* :
-| **Migration & Backward  | Rollout safety &        | *How do existing         |
-: Compatibility**         : version skew            : clients/data migrate?    :
-:                         :                         : Does this break          :
-:                         :                         : serialized schemas,      :
-:                         :                         : protos, or persistent    :
-:                         :                         : storage? How is rollback :
-:                         :                         : handled mid-migration?*  :
-| **Observability & SRE   | Telemetry & operational | *Are key operations      |
-: Debuggability**         : visibility              : traceable via            :
-:                         :                         : distributed tracing? Are :
-:                         :                         : telemetry metrics        :
-:                         :                         : actionable? How will     :
-:                         :                         : oncall engineers triage  :
-:                         :                         : a production incident at :
-:                         :                         : 3 AM?*                   :
-| **Long-Term Tech Debt & | Future maintainability  | *Does this introduce     |
-: Maintenance**           :                         : tightly coupled          :
-:                         :                         : dependencies or brittle  :
-:                         :                         : state machines that will :
-:                         :                         : be painful to maintain   :
-:                         :                         : in 2 years?*             :
+| Lens / Persona | Core Objective | Key Questions Challenged |
+| :--- | :--- | :--- |
+| **Contrarian / YAGNI** (`egm-zoom-out`) | Code & complexity minimization | *Why does this feature need to exist? Can an existing library, open-source dependency, API, or service solve 90% of this problem without writing new code?* |
+| **Cost, Quota & Token Economics** (`egm-design`) | Infrastructure & budget scaling | *What is the peak QPS, memory footprint, database query load, or LLM token budget? Will this hit quota ceilings at scale?* |
+| **UX & Developer Ergonomics** (`egm-comprehension`) | Usability & cognitive overhead | *Is the API/CLI intuitive? Does it match ecosystem conventions? Are error messages actionable, or does it add developer friction?* |
+| **Migration & Backward Compatibility** (`egm-implementation-readiness`) | Rollout safety & version skew | *How do existing clients/data migrate? Does this break serialized schemas, protos, or persistent storage? How is rollback handled mid-migration?* |
+| **Observability & SRE Debuggability** (`egm-codebase-details`) | Telemetry & operational visibility | *Are key operations traceable via distributed tracing? Are telemetry metrics actionable? How will oncall engineers triage a production incident at 3 AM?* |
+| **Long-Term Tech Debt & Maintenance** (`egm-structural`) | Future maintainability | *Does this introduce tightly coupled dependencies or brittle state machines that will be painful to maintain in 2 years?* |
 
 ## Execution Workflow
 
@@ -145,21 +112,16 @@ If your harness has no subagent tool, stop and tell the user: a review in the sa
     defined. Do NOT use structured question tools (`ask_question`) and do NOT
     provide candidate multiple-choice options during problem exploration. Ask
     open-ended questions directly in chat:
-
     *   *What specific problem, bottleneck, or pain point does this solve?*
-    *   *Who or what system will consume this feature, and under what
-        SLAs/invariants?*
-    *   *What are the hard non-negotiable constraints (e.g., zero false
-        positives, offline operation, specific platform/dialect)?*
+    *   *Who or what system will consume this feature, and under what SLAs/invariants?*
+    *   *What are the hard non-negotiable constraints (e.g., zero false positives, offline operation, specific platform/dialect)?*
     *   *What are the edge cases or out-of-scope boundaries?*
     *   *How is this issue dealt with today? Why doesn't that work?*
     *   *How is success going to be measured?*
-
 3.  **Readiness Checkpoint Gate (Single-Select)**: Once a clear foundation is
     established, summarize the anchored working hypothesis in 2-3 sentences.
     Present an explicit single-select confirmation gate (using a structured
-    question tool such as `ask_question` if your harness has one, or plain
-    chat):
+    question tool such as `ask_question` if your harness has one, or plain chat):
 
     ```json
     {
@@ -182,8 +144,7 @@ If your harness has no subagent tool, stop and tell the user: a review in the sa
     *   **Option 1: `Clarify additional constraints or assumptions in chat`**:
         The user wishes to refine the problem statement or provides write-in
         notes. Stay in Step 1, yield the turn in chat for details, incorporate
-        feedback into the hypothesis, and re-present the readiness gate when
-        ready.
+        feedback into the hypothesis, and re-present the readiness gate when ready.
 
 4.  **Proceed to Step 2 ONLY** after Option 0 is confirmed. Do NOT spawn
     subagents before this gate confirms readiness.
@@ -196,14 +157,14 @@ If your harness has no subagent tool, stop and tell the user: a review in the sa
     *   Subagent: `egm-synthesizer` (`agents/synthesizer.md`)
     *   `Prompt`: >- Conduct multi-lens brainstorm for feature concept:
         `[AnchoredFeatureHypothesis]`. Mode: `BRAINSTORM`. Reviewers:
-        `[egm-design, egm-codebase-details, egm-zoom-out, egm-comprehension,
-        egm-implementation-readiness, egm-structural]`.
+        `[egm-design, egm-codebase-details, egm-zoom-out, egm-comprehension, egm-implementation-readiness, egm-structural]`.
 2.  **Synthesizer Execution**: The `egm-synthesizer` subagent launches the
     parallel Goldfish reviewers across the specialized lenses (`egm-design`,
     `egm-codebase-details`, `egm-zoom-out`, `egm-comprehension`,
     `egm-implementation-readiness`, `egm-structural`) with `Mode: BRAINSTORM`.
-3.  **Deduplication**: Collect the raw findings from the Goldfish reviewers,
-    deduplicate overlapping points, and format them into a cohesive analysis.
+3.  **Deduplication & Schema Normalization**: Collect raw findings from Goldfish
+    reviewers, deduplicate overlapping points, and validate evidence according to the
+    Standard Review-Finding Contract (11 fields) defined in `resources/finding_contract.md`.
 4.  **Write/Update Artifact**: Format and write the synthesized brief to
     `concepts_brief.md` in the working directory (or your harness's artifact
     directory, if it has one) using your file-writing tool.
@@ -215,23 +176,32 @@ The `concepts_brief.md` artifact follows this structure:
 
 * **Author:** [Author Name or GitHub Handle]
 * **Date:** [YYYY-MM-DD]
+* **Status:** Draft / RFC
 
-## Overview
+## 1. Concept Summary
+[High-level summary of the concept, target user, and core value proposition written in direct, plain English.]
 
-[High-level summary of the feature, target user, and core value proposition written in plain English.]
+## 2. Alternatives Explored
+[Concrete alternative approaches examined prior to selecting this solution, including trade-offs and rejection reasons.]
 
-## Analysis
+## 3. Strongest Adversarial Objections & Challenges
+[Strongest counter-arguments and failure modes surfaced by Goldfish reviewers challenging initial assumptions.]
 
-[Cohesive analysis found by review lenses written in plain English.]
+## 4. Architectural, Security & Feasibility Risks
+[Identified risks across feasibility, infrastructure economics, security, maintenance, and failure scenarios.]
 
-## Goals vs. Non-Goals
+## 5. Practical Recommendation & Synthesis
+[Synthesized recommendation balancing user value against technical complexity and operational costs.]
 
+## 6. Smallest Useful Validation Experiment
+[Minimal prototype, benchmark, or user experiment to validate assumptions before committing to full specification.]
+
+## 7. Goals vs. Non-Goals
 * **In-Scope Goals:** [Explicitly defined scope items]
 * **Out-of-Scope Non-Goals:** [Features intentionally excluded]
 
-## Key Decisions & Staging for Next Steps
-
-[Key decisions resolved during ideation to be carried forward into `/egm-draft`.]
+## 8. Unresolved Questions & Key Decisions
+[Critical open questions and key decisions to be carried forward into `/egm-draft`.]
 ```
 
 ### Step 3: Interactive Iteration & Refinement Loop
@@ -277,8 +247,7 @@ The `concepts_brief.md` artifact follows this structure:
             shared with the team for feedback before formal drafting. Remind the
             user that once feedback is gathered, a detailed design can be
             initiated by running `/egm-draft docs/designs/<feature_name>.md`.
-    *   **Option 1: `Proceed to /egm-draft (Initialize formal design
-        document)`**:
+    *   **Option 1: `Proceed to /egm-draft (Initialize formal design document)`**:
         *   Confirm that `concepts_brief.md` is saved in the working directory
             or artifact directory.
         *   Instruct the user to run `/egm-draft` (or activate the `egm-draft`
@@ -289,4 +258,4 @@ The `concepts_brief.md` artifact follows this structure:
             update the brief based on user chat input.
     *   **Option 3: `Conclude brainstorming and keep brief for later`**:
         *   Conclude the session gracefully. Remind the user that
-            `concepts_brief.md` remains saved for future reference.
+        `concepts_brief.md` remains saved for future reference.

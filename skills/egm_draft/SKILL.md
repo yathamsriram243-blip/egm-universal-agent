@@ -9,15 +9,14 @@ description: >-
   requirements + solution.
 ---
 
-# Design Drafting (Document Construction)
+# Design Drafting: Iterative Specification Construction
 
-This skill guides the user through drafting a technical design document based on
-the aligned problem and requirements from the brainstorm phase.
+This skill guides the user through drafting an authoritative technical design document
+based on user requirements, codebase evidence, and the aligned problem from the brainstorm phase.
 
 ## Execution Constraints (CRITICAL)
 
-1.  You **MUST** read and apply the
-    execution instructions in `resources/execution_instructions.md`.
+1.  You **MUST** read and apply the execution instructions in `resources/execution_instructions.md`.
 2.  **Artifact-First Delivery (MANDATORY)**: You are **STRICTLY FORBIDDEN** from
     presenting large proposals, drafts, summaries, or plans directly in the chat
     pane. You **MUST** write them directly to the working directory (or your
@@ -31,28 +30,30 @@ the aligned problem and requirements from the brainstorm phase.
     rely on buzzwords. Do not use ungrounded promotional adjectives (e.g.,
     *seamless*, *robust*, *blazingly fast*) or decorative adverbs (e.g.,
     *seamlessly*, *effortlessly*, *literally*, *drastically*, *obviously*).
-4.  **Default to Stress-Testing**: Never agree by default. Your primary
+4.  **Evidence-Grounded (NO INVENTED APIS)**: You **MUST NOT** invent APIs, repository
+    behavior, file paths, or user requirements. Verify all referenced symbols and existing
+    abstractions against live source code via code search.
+5.  **Strict Separation of Concerns**: You **MUST** strictly separate:
+    - Business & User Requirements
+    - Technical & Environmental Constraints
+    - Critical Assumptions
+    - Explicit Decisions & Trade-Offs
+    - Non-Goals (out-of-scope boundaries)
+    - Unresolved Questions
+    - Acceptance Criteria & Acceptance Tests
+6.  **Default to Stress-Testing**: Never agree by default. Your primary
     directive is to stress-test ideas, strategies, and opinions. Find the
     weakest points, edge cases, and blind spots before affirming anything.
-5.  **No Glazing**: Eliminate sycophancy. Do not call ideas "great,"
+7.  **No Glazing**: Eliminate sycophancy. Do not call ideas "great,"
     "brilliant," or "smart." Compliments without substance are noise.
-6.  **Critique First**: Even when an idea is strong, lead with what is wrong,
+8.  **Critique First**: Even when an idea is strong, lead with what is wrong,
     missing, or risky before highlighting its merits.
-7.  **Reject Echo-Chamber Framing**: Never parrot framing back to the user. If a
+9.  **Reject Echo-Chamber Framing**: Never parrot framing back to the user. If a
     conclusion is asserted, do not validate it reflexively.
-8.  **Generate Counter-Arguments**: For every strategy proposed, actively
-    outline: What is the user not seeing? What is the strongest
-    counter-argument? Is the opposing view justified?
-9.  **Earn Your Agreement**: Only agree when the idea has survived rigorous,
-    objective scrutiny.
-10. **Banned Adjectives (No Flattery)**: You are strictly prohibited from using
+10. **Banned Adjectives & Apologies**: You are strictly prohibited from using
     validating adjectives like "brilliant," "great," "smart," "correct,"
-    "perfect," "excellent," or "spot-on" when referring to the user's inputs,
-    corrections, or decisions.
-11. **Banned Apologies**: You MUST NOT output polite apologies (e.g., "I
-    apologize," "I am sorry," "Forgive me") when challenged or corrected.
-    Instead, outline the corrected technical logic or trade-offs directly.
-12. **Interaction Invariants**: All interactive gates (structured question tools
+    "perfect," "excellent," or "spot-on" and apologetic phrases like "I apologize".
+11. **Interaction Invariants**: All interactive gates (structured question tools
     such as `ask_question`, if your harness has one, or plain chat) MUST contain
     strictly one question (`len(questions) == 1`), be the sole tool call in the
     turn, and provide clear, action-oriented options without `(Recommended)`
@@ -111,14 +112,11 @@ this strict generation order:
         context, apply those inline updates to `design_draft.md` first before
         advancing to the next section.
     *   Otherwise, advance immediately to drafting the next section.
-*   **Option 1 (`Request revisions to [Section Name] (via inline comments or
-    write-in)`) or Modal Skip with Inline Comments**:
+*   **Option 1 (`Request revisions to [Section Name] (via inline comments or write-in)`) or Modal Skip with Inline Comments**:
     *   **With Inline Comments and/or Write-in Instructions**: Inspect both the
-        write-in response and any inline comments left on `design_draft.md`
-        (honoring positive callouts to retain highlighted sections and negative
-        callouts to revise or remove content). Apply all revisions to
-        `design_draft.md` using your file-writing tool, notify the user, and
-        re-present the approval gate.
+        write-in response and any inline comments left on `design_draft.md`.
+        Apply all revisions to `design_draft.md` using your file-writing tool,
+        notify the user, and re-present the approval gate.
     *   **Empty Write-in Guard (CRITICAL)**: If selected without write-in text
         **and** without any inline comments in the turn context, **DO NOT** loop
         or fail. Prompt in chat: `"Please specify the adjustments or additions
@@ -133,158 +131,74 @@ this strict generation order:
     strict priority order:
     *   **Priority 1: Modern Ideation Brief (`concepts_brief.md`)**: Check for
         `concepts_brief.md` in `./concepts_brief.md`, the conversation artifact
-        directory, or `scratch/concepts_brief.md`. If found, ingest and parse
-        the brief.
+        directory, or `scratch/concepts_brief.md`. If found, ingest and parse the brief.
     *   **Priority 2: Discussion Summary (`discussion_summary.md`)**: If
         `concepts_brief.md` is not found, check for `discussion_summary.md` in
         `./discussion_summary.md`, the conversation artifact directory, or
         `scratch/discussion_summary.md`. If found, ingest and parse the summary.
-        **Do NOT** prompt the user to start `/egm-brainstorm` or warn of
-        deprecation.
     *   **Priority 3: Interactive Chat Prompt**: If neither file exists, prompt
         the user in chat for the feature's problem statement, goals, and
         technical context, or offer to launch `/egm-brainstorm`.
-3.  **Verify State**: Parse the document. Present a quick confirmation to the
-    user to ensure we are starting with the correct context.
+3.  **Verify State & Grounding**: Search the repository to ground all mentioned modules,
+    services, and dependencies in live code.
 4.  **Consensus**: Get explicit approval to start drafting the document.
 
-### Step 2: Draft Overview, Goals & Problem Statement
+### Step 2: Draft Overview, Problem, Requirements, Constraints & Goals
 
-1.  **Review Context**: Use the ingested information to frame the business
-    problem and user pain points.
-2.  **Draft Content**: Write "The Problem", "Overview", "Goals", and "Non-Goals"
-    in clear, plain English Markdown following the design document template
-    (`references/design_doc.md`).
-3.  **Focus**: Emphasize the *why* (the user need and business value) rather
-    than the *how* (technical implementation).
-4.  **Write Draft Artifact (MANDATORY)**: Save this initial draft to
-    `design_draft.md` in the working directory (or your harness's artifact
-    directory, if it has one) using your file-writing tool.
-5.  **Notify & Verify (No Chat Dumps)**: You are **STRICTLY FORBIDDEN** from
-    printing the draft in the chat. Instead, notify the user in conversational
-    chat text that Overview & Problem Statement has been drafted, provide a
-    clickable link or path to `design_draft.md`, and present the Section
-    Approval Gate for `Overview & Goals`.
+1.  **Review Context**: Frame the business problem, user pain points, and system invariants.
+2.  **Draft Content**: Write:
+    - **The Problem**: User pain point and root technical challenge.
+    - **Overview**: High-altitude summary.
+    - **Requirements & Constraints**: Non-negotiable technical, security, performance, and legal constraints.
+    - **Assumptions**: Critical baseline facts assumed to be true.
+    - **Goals**: Measurable success criteria.
+    - **Non-Goals**: Explicitly excluded out-of-scope boundaries.
+    - **Open Questions**: Unresolved technical unknowns.
+3.  **Write Draft Artifact**: Save to `design_draft.md` using your file-writing tool.
+4.  **Notify & Verify**: Present the Section Approval Gate for `Overview & Goals`.
 
-### Step 3: Draft Technical Plan
+### Step 3: Draft Technical Plan, Interfaces, Error States & Security
 
-1.  **Synthesize Architecture**: Review the proposed high-level architecture and
-    solution from the ingested context.
-2.  **Draft Plan**: Describe the proposed changes in clear prose. Identify new
-    components, modified files, and API changes. Include text-based block
-    diagrams (e.g., ASCII or Mermaid) to illustrate data flow.
-3.  **Update Draft Artifact (MANDATORY)**: Update `design_draft.md` to
-    append/insert the "Technical Plan" section using your file-writing tool.
-4.  **Notify & Verify (No Chat Dumps)**: You are **STRICTLY FORBIDDEN** from
-    printing the technical plan in the chat. Notify the user in conversational
-    chat text that the Technical Plan has been added, provide a clickable link
-    or path to `design_draft.md`, and present the Section Approval Gate for
-    `Technical Plan`.
+1.  **Synthesize Architecture**: Review proposed components, data flows, and external integrations.
+2.  **Draft Plan**: Describe architectural layout, dependencies, public interfaces, data schemas,
+    error states and recovery paths, security/privacy boundaries, and state transitions. Include
+    diagrams (ASCII or Mermaid) to illustrate component relationships.
+3.  **Grounding Verification**: Ensure every referenced library or base class exists in the codebase.
+4.  **Targeted Questions Gate**: If an architectural or schema decision is ambiguous, ask the user
+    a targeted question before finalizing the section.
+5.  **Update Draft Artifact**: Append to `design_draft.md` using your file-writing tool.
+6.  **Notify & Verify**: Present the Section Approval Gate for `Technical Plan`.
 
-### Step 4: Draft Alternatives
+### Step 4: Draft Alternatives & Trade-Offs
 
-1.  **Review Alternatives**: Recall the alternatives debated and rejected during
-    brainstorming.
-2.  **Draft Content**: Write the "Alternatives Considered" section in plain
-    English in Markdown format.
-3.  **Detail Reasons**: For each alternative, explicitly state *why* it was
-    rejected (e.g., higher latency, scaling limitations, team unfamiliarity).
-4.  **Update Draft Artifact (MANDATORY)**: Update `design_draft.md` to
-    append/insert the "Alternatives Considered" section using your file-writing
-    tool.
-5.  **Notify & Verify (No Chat Dumps)**: You are **STRICTLY FORBIDDEN** from
-    printing the alternatives in the chat. Notify the user in conversational
-    chat text that the Alternatives section has been added, provide a clickable
-    link or path to `design_draft.md`, and present the Section Approval Gate for
-    `Alternatives Considered`.
+1.  **Review Alternatives**: Recall the viable approaches considered during ideation.
+2.  **Draft Content**: Write "Alternatives Considered", detailing why each alternative was
+    rejected (cost, complexity, latency, scalability, security, team familiarization).
+3.  **Update Draft Artifact**: Append to `design_draft.md` using your file-writing tool.
+4.  **Notify & Verify**: Present the Section Approval Gate for `Alternatives Considered`.
 
-### Step 5: Draft Implementation
+### Step 5: Draft Detailed Implementation & Acceptance Criteria
 
-Draft a detailed implementation plan that focuses on how to implement the
-feature. This plan must be detailed. You should ask questions and add enough
-detail so that with the plan alone you can implement it without having to make
-any impactful decisions. Follow these guidelines:
+1.  **Single Implementation List**: Complete, sequenced breakdown of tasks.
+2.  **Enumerate All Files**: List EVERY file to be created, modified, or deleted with full paths or
+    clean basenames and explicit rationale for each change.
+3.  **Acceptance Criteria & Tests**: Explicit unit, integration, and E2E test commands, expected
+    assertions, test mock plans, and regression safeguards.
+4.  **NO PRODUCTION CODE**: Write schemas, signatures, or pseudocode inside markdown blocks, but do
+    not create functional source code files.
+5.  **Update Draft Artifact**: Append to `design_draft.md` using your file-writing tool.
+6.  **Notify & Verify**: Present the Section Approval Gate for `Detailed Implementation`.
 
-1.  **Single Implementation List**: List everything that needs to happen in one
-    unified section.
-2.  **Enumerate Files**: List EVERY file that will be changed, created, or
-    deleted. Include any documentation, schema, config, proto, or testing files
-    that should be updated. You MUST include a reference to every file touched
-    by the plan.
-3.  **Rationale**: Every file must be accompanied with a rationale explaining
-    *what* will change and *why* the change is necessary.
-4.  **Format Links**: Provide full paths to files if known, or clear basenames,
-    using relative paths (e.g., `./sub/README.md` or `../sibling/README.md`) for
-    intra-package and sibling documentation links.
-5.  **NO CODE**: Do not generate actual implementation code in this design
-    draft. Pseudocode, APIs, or schemas are allowed.
-6.  **Update Draft Artifact (MANDATORY)**: Update `design_draft.md` to
-    append/insert this "Detailed Implementation" section using your file-writing
-    tool.
-7.  **Notify & Verify (No Chat Dumps)**: You are **STRICTLY FORBIDDEN** from
-    printing the implementation plan in the chat. Notify the user in
-    conversational chat text that the Detailed Implementation Plan has been
-    added, provide a clickable link or path to `design_draft.md`, and present
-    the Section Approval Gate for `Detailed Implementation`.
+### Step 6: Finalize & Save Specification
 
-### Step 6: Write Design Document Finalization
-
-When you are asked to write or save the design document, follow these rules
-strictly:
-
-1.  **Target Directory**: If the user specified a target directory or file, use
-    it. Otherwise, probe the workspace for existing design directories (from
-    `Context File` directory, `docs/designs/`, or `<project>/docs/designs/`),
-    bind `[DiscoveredPath]` (defaulting to `docs/designs/`), and present a
-    single-select gate (using a structured question tool such as `ask_question`
-    with `len(questions) == 1` and `is_multi_select: false` if your harness has
-    one, or plain chat):
-
-    ```json
-    {
-      "questions": [
-        {
-          "question": "Where should the design be saved?",
-          "options": [
-            "Save to detected directory: [DiscoveredPath]",
-            "Specify custom target directory"
-          ],
-          "is_multi_select": false
-        }
-      ]
-    }
-    ```
-
-    *   **Option 0**: Set `<DESIGN_DIR>` to `[DiscoveredPath]`.
-    *   **Option 1**: If custom path is provided in write-in text, set
-        `<DESIGN_DIR>` to supplied path. If empty write-in, prompt in chat:
-        `"Please specify the custom target directory path where you would like
-        to save the design document."` and yield active execution.
-
-2.  **Update Sitemap**: If `<DESIGN_DIR>/SITEMAP.md` exists, register the new
-    design in it (Link, Date, Author, Components, Description).
-
-3.  **Self-Evaluate against Zoom Out Standard**: Before saving the file,
-    self-evaluate the compiled design document (contents of `design_draft.md`)
-    against the EGM Zoom Out Standard
-    (`resources/document_standards/zoom-out-standard.md`).
-    Verify that the design remains focused on the root problem, does not
-    introduce premature optimizations or speculative logic (YAGNI), maximizes
-    reuse, and avoids repeating itself. If any issues are found, present them to
-    the user, explain the proposed improvements, and ask for confirmation before
-    refining the draft.
-
-4.  **Write doc**: Once finalized, write the contents of `design_draft.md` to
-    the designated destination file at `<DESIGN_DIR>/<FEATURE>.md` using your
-    file-writing tool. Follow the [template](references/design_doc.md) for final
-    structure if any adjustments are needed.
-
-5.  **Clean Formatting**: Ensure clean standard Markdown formatting, valid table
-    syntax, and proper code block fences.
-
-6.  **Handoff**: Provide a clickable link to the finalized design and recommend
-    that the user review the document with:
+1.  **Target Directory Resolution**: Probe workspace for design directories (`docs/designs/`,
+    `<project>/docs/designs/`, or `Context File` directory). Default to `docs/designs/`.
+2.  **Consistency Audit**: Verify internal consistency across all sections (e.g., ensuring
+    Implementation tasks match Technical Plan interfaces and Goals).
+3.  **Save Specification**: Write finalized document to `<DESIGN_DIR>/<FEATURE>.md` using your
+    file-writing tool. Update `<DESIGN_DIR>/SITEMAP.md` if present.
+4.  **Handoff**: Provide clickable link to the saved design specification and prompt the user:
 
     ```markdown
-    `egm-review` <DESIGN_PATH>
+    `/egm-review <DESIGN_PATH>`
     ```

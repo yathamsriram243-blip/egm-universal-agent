@@ -3,157 +3,115 @@ name: egm-resolve
 license: Apache-2.0
 disable-model-invocation: true
 description: >-
-  The Elephant resolution skill. Ingests flat deficiency reports from
-  concurrent Goldfish reviewers, applies automated fixes for PROPOSE FIX
-  items via UI multiple-choice gates, and presents interactive
-  negotiation/re-sync checkpoints.
+  The Elephant resolution skill. Ingests structured review findings, performs interactive
+  triage and classification, proposes minimal safe patches, applies approved edits,
+  and runs automated verification tests.
 ---
 
-# Goldfish Review: Resolve
+# EGM Resolve: Interactive Triage & Patch Verification Engine
 
 ## Overview
 
-This skill instructs the agent on how to operate within the primary Elephant
-context window to parse flat deficiency reports from concurrent Goldfish
-reviewers. It defends accurate design choices, applies automated textual
-repairs, and manages interactive negotiation checkpoints.
+This skill operates within the primary Elephant context window to parse review findings
+from Goldfish subagents. It evaluates critiques against repository facts, classifies findings,
+presents an interactive triage gate to the human engineer, proposes the smallest safe fix,
+applies approved edits, and verifies changes using targeted tests.
 
-## Prerequisites & Context Strategy
+## Context Strategy (Elephant Memory)
 
-*   **Context Recommendation (Elephant Memory)**: This skill should be run in
-    the persistent conversation session that generated the target document (the
-    Elephant) to recall earlier reasoning and craft higher-quality fixes.
+Run this skill in the persistent conversation session that generated the target document or
+code (the Elephant). This preserves historical rationale, architectural context, and intent
+needed to defend accurate design decisions and craft minimal, high-quality repairs.
 
 ## Inputs
 
-The caller or orchestration driver provides exactly these parameters:
+*   **`TargetFile`**: Path to the target document or source file (Required).
+*   **`LineRange`**: Target line numbers or `full file` (Required).
+*   **`FindingsList`**: List of findings conforming to the 11-field Standard Review-Finding Contract (`resources/finding_contract.md`).
 
-*   **`TargetFile`**: Absolute or relative path to target document.
-*   **`LineRange`**: Exact line numbers (or `full file`).
-*   **`FindingsList`**: Aggregated flat list of findings from Goldfish
-    reviewers.
+## Finding Classification Taxonomy
+
+For every finding in `FindingsList`, the Elephant classifies its disposition:
+
+1.  **`defect`**: Confirmed technical, structural, or logical flaw requiring a code or document fix.
+2.  **`valid improvement`**: Sound suggestion that enhances clarity, performance, or simplicity.
+3.  **`duplicate`**: Redundant observation already covered by another finding ID.
+4.  **`false positive`**: Reviewer misunderstood codebase semantics, out-of-scope boundaries, or intentional design invariants. Defended with code evidence.
+5.  **`needs clarification`**: Reviewer raised a valid ambiguity that requires human direction before a fix can be determined.
+
+## Execution Constraints & Safety Rules
+
+1.  **No Silent Discarding**: You MUST NOT silently ignore or delete disputed findings. Every finding
+    must have an explicit disposition (`accepted`, `rejected`, `deferred`, `fixed`).
+2.  **Smallest Safe Fix**: Propose the minimal surgical modification necessary to resolve the defect.
+    Do not rewrite unrelated paragraphs or refactor adjacent code.
+3.  **Preserve User Work**: Do not overwrite unrelated changes or revert concurrent human edits.
+4.  **No Speculative Verification Claims**: You MUST NOT claim a fix is verified unless the relevant
+    test command was executed and exited with code 0 in the shell tool.
+5.  **Scope Boundary Enforcement**: Only apply patches to files and sections explicitly approved by the user.
 
 ## Execution Workflow
 
-### Step 1: Intake Validation & Gather Context
+### Step 1: Ingest & Evaluate Findings
 
-1.  **Hybrid Execution UX**: Detect if execution arguments are present:
+1.  Read `TargetFile` at `LineRange` and inspect all referenced source files using your file-reading tool.
+2.  Evaluate each finding against live repository code and authoritative specs.
+3.  Assign classification (`defect`, `valid improvement`, `duplicate`, `false positive`, or `needs clarification`).
+4.  Formulate proposed minimal textual replacements or code edits for accepted items.
 
-    *   *Automated Mode*: If all parameters are provided, execute silently as a
-        subprocess.
-    *   *Standalone Human Mode*: If parameters are omitted, trigger a friendly
-        onboarding flow. Prompt for one piece of input at a time, waiting for
-        the user's response after each turn. Once all inputs are specified,
-        display the final setup and verify the user is ready to continue.
+### Step 2: Compile Triage Report
 
-2.  Read `TargetFile` at `LineRange` by reading it and parse the `FindingsList`.
-
-### Step 2: Evaluate & Categorize
-
-For each finding in the list, determine:
-
-*   **CONTEST**: The critique is inaccurate or relies on a misunderstanding of
-    the codebase. Provide exact code or design doc evidence defending current
-    text.
-*   **PROPOSE FIX**: The critique is valid. Define precise textual replacements
-    or structural formatting adjustments to resolve the gap.
-
-### Step 3: Report Fixes
-
-Construct the final report and save it named
-`goldfish_review_report.md` in the working directory (or your harness's artifact directory, if it has one)
-using your file-writing tool. Use this layout:
+Write the annotated triage report to `goldfish_review_report.md` in the working directory (or harness artifact directory) using your file-writing tool:
 
 ```markdown
-# Goldfish Annotated Review Report
+# EGM Resolution & Triage Report
 
 **Target:** `[TargetFile]` (`[LineRange]`)
+**Date:** [YYYY-MM-DD]
 
-## Prioritized Findings & AI Suggestions
+## Finding-by-Finding Disposition
 
-{{range findings, ordered by Severity}}
-### [Issue 1] [`[ReviewerPersona]`] - Severity: [High | Medium | Low]
-*   **Affected Scope:** [Lines Start-End]([RelativePath]#L[Start]-L[End]) ([Sub-header])
-*   **Discrepancy Description:** [copied from FindingsList]
-*   **Rationale:** [copied from FindingsList]
-*   ***AI Suggestion:*** [CONTEST | PROPOSE FIX]
-*   ***Justification:*** [Detailed reason]
-*   ***Proposed Edit:***
-    *   Location: [Line/Header]
-    *   Change: [Precise replacement string or deletion note]
-{{end}}
+### [[id]] [title] - Severity: [Severity]
+* **Category**: [Category] | **Location**: `[Location]`
+* **Disposition**: [defect | valid improvement | duplicate | false positive | needs clarification]
+* **Elephant Evaluation**: [Technical rationale defending or accepting the finding]
+* **Proposed Action**: [CONTEST | PROPOSE FIX | DEFER]
+* **Proposed Patch / Minimal Edit**:
+  ```diff
+  - [Original text / code to remove]
+  + [Minimal replacement text / code to add]
+  ```
+* **Status**: [open | accepted | rejected | deferred | fixed]
 ```
 
-### Step 4: Interactive Resolution Gate
+### Step 3: Interactive Triage Gate
 
-Before proceeding, output a visible chat message to the user: *"I have compiled
-the audit findings into `goldfish_review_report.md`. Please review the findings there and choose how you would like to
-proceed:
+Present the triage gate to the user in chat:
 
--   **Comment directly on the file**: Review `goldfish_review_report.md` in
-    chat or the file and leave comments/edits to approve, reject, or contest
-    specific items.
--   **Auto accept**: Reply "auto accept" to batch-apply all proposed fixes
-    (skipping contested items).
--   **Continue to next phase**: Reply "continue" or "no changes" to proceed
-    without applying fixes.
--   **Interactive breakdown**: Reply "interactive breakdown" for a guided,
-    item-by-item walkthrough in chat with detailed explanations for each
-    proposed edit or contested finding before making decisions.
--   **Custom instruction / Wildcard request**: Reply with any custom
-    instruction, question, or out-of-band request."*
+*"I have compiled the audit triage into `goldfish_review_report.md`. Please choose how to proceed:
+- **Auto accept**: Apply all proposed fixes for confirmed defects and valid improvements.
+- **Interactive breakdown**: Walk through findings one-by-one to approve, reject, or adjust each fix.
+- **Continue without changes**: Proceed without applying fixes (leave findings deferred).
+- **Custom instruction**: Provide specific guidance or edits."*
 
-You **MUST** immediately yield active execution by calling **zero tools** in
-this turn payload. You must stop execution and go idle, waiting for the human
-developer to comment on/edit the artifact or reply in the chat.
+Yield execution immediately by calling zero tools in this turn payload and wait for user response.
 
-Interpret the user's action/response as follows:
+### Step 4: Patch Application & Safe Editing
 
--   **"Auto accept" / "Accept all suggestions" / User clicks "Proceed" without
-    contesting**: Apply all fixes where the AI suggestion was `PROPOSE FIX`
-    directly to `TargetFile` at `LineRange` in a single batch using
-    your file-editing tool. Any items categorized as `CONTEST` are explicitly
-    bypassed. Then proceed to Step 5.
--   **"Continue to next phase" / "No changes"**: Do not apply any automated
-    fixes. Then proceed to Step 5.
--   **"Interactive breakdown"**: Enter a sequential breakdown loop over ALL
-    finding items (both `PROPOSE FIX` and `CONTEST`):
+Upon approval:
+1. Apply approved diffs using your file-editing tool (`edit_file`).
+2. Verify that edits apply cleanly without mangling surrounding text.
 
-    1.  For each item `i`, output a visible chat message formatting the full
-        finding details and explanation in rich markdown:
+### Step 5: Automated Verification & Regression Testing
 
-        ```markdown
-        ### Breakdown Item [i]: [Issue Title] [`[ReviewerPersona]`]
-        * **Scope:** [Lines Start-End]([RelativePath]#L[Start]-L[End]) ([Sub-header])
-        * **Description:** [Description]
-        * **AI Suggestion:** [CONTEST | PROPOSE FIX]
-        * **Explanation & Justification:** [Detailed reason and background explaining why the fix is proposed or why the finding is contested]
-        * **Proposed Edit:** [Precise replacement text or deletion note]
-        ```
+1.  Detect and execute the relevant test command for the project (e.g., `pytest`, `npm test`, `cargo test`, `go test ./...`).
+2.  If tests fail, inspect the failure log, formulate a rollback or corrective patch, and alert the user.
+3.  Record test execution command and exit status in the report.
 
-        Then prompt the user in chat for their decision on this item (calling
-        **zero tools** and going idle):
+### Step 6: Post-Resolution Sync & Output
 
-        *   If `PROPOSE FIX`: Ask the user to reply with **Accept proposed
-            fix**, **Skip / ignore**, or **Discuss**.
-        *   If `CONTEST`: Ask the user to reply with **Skip / agree with
-            contest**, **Overrule contest (propose fix)**, or **Discuss**.
-
-    2.  Record the user's decisions in an internal memory checklist (e.g., *Item
-        1: Accepted*, *Item 2: Ignored*, *Item 3: Overruled*). **Do NOT call any
-        file editing tools during this sequential loop.**
-
-    3.  Once all items have been decided, summarize the accepted edits, execute
-        them using your file-editing tool, and proceed to Step 5.
-
--   **Custom instruction / Out-of-band edit**: If the user provides targeted
-    instructions, apply them and proceed.
-
-### Step 5: Post-Resolution Synchronization & Exit
-
-1.  **Re-verify Lines**: If changes were made to `TargetFile`, verify that the
-    file remains structurally coherent and valid markdown.
-2.  Mark the report as resolved (add a `Status: resolved` line at the top).
-3.  **Handoff**: Exit cleanly back to the caller (such as `egm-review-loop`)
-    with the count of accepted fixes, contested items, and remaining unaddressed
-    issues.
+Update `goldfish_review_report.md` with final statuses (`fixed`, `rejected`, `deferred`) and return:
+1. Finding-by-finding disposition summary.
+2. Applied patches.
+3. Verification results and test output.
+4. Remaining risks or unaddressed items.

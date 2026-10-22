@@ -1,64 +1,76 @@
-# Harnesses
+# Harnesses & Agent Compatibility Matrix
 
-EGM is one set of skills and personas. This repository serves as the
-plugin source for each supported harness. No harness gets a fork of the skill
-text.
+EGM is a single canonical set of seven skills and nine personas. This repository serves as the
+authoritative plugin source across all supported host coding agents.
 
-## Install
+## 1. Supported & Adapted Harnesses
 
-| Harness | Install |
-| --- | --- |
-| Antigravity | `/plugin`, then install from `https://github.com/google/elephant-goldfish-model` |
-| Gemini CLI | `gemini extensions install https://github.com/google/elephant-goldfish-model` |
+| Harness | Adapter Manifest / Config | Discovery Root | Subagent Mechanism | Concurrency Support |
+| :--- | :--- | :--- | :--- | :--- |
+| **Google Antigravity** | `plugin.json` | `~/.gemini/config/plugins/egm` or `.agents/` | `invoke_subagent` (native named personas) | Parallel Subagents + Hierarchical Nesting |
+| **Gemini CLI** | `gemini-extension.json` | `~/.gemini/extensions/` | Subagents (named personas in `agents/`) | Parallel Subagents |
+| **Claude Code** | `.claude-plugin/plugin.json`, `.claude/commands/` | `.claude-plugin/` or `.claude/` | Direct Dispatch / Subshell / Sequential | Parallel / Sequential Fallback |
+| **Cursor** | `.cursor/rules/egm.mdc`, `.cursorrules` | Project root / `.cursor/rules/` | Cursor Agent Mode / Custom Prompts | Sequential Fallback |
+| **GitHub Copilot** | `.github/copilot-instructions.md` | `.github/` | Chat Prompt Routing / Specialized Roles | Sequential Fallback |
+| **OpenAI Codex** | `AGENTS.md` | Project root | Agent Prompt Ingestion | Sequential Fallback |
+| **Windsurf** | `.windsurfrules` | Project root | Cascade Rule Ingestion | Sequential Fallback |
+| **OpenCode** | `opencode.json` | Project root | OpenCode Skill & Agent Loader | Parallel / Sequential Fallback |
 
-Install the whole plugin. Skill-only installers that copy `skills/` alone
-break EGM, because the skills read `agents/` and
-`resources/document_standards/` at run time.
+---
 
-## Manifests
+## 2. Installation & Configuration by Harness
 
-| Harness | Manifest | Skills | Subagents |
-| --- | --- | --- | --- |
-| Antigravity | `plugin.json` | `skills/` (default) | `agents/` (default) |
-| Gemini CLI | `gemini-extension.json` | `skills/` (default) | `agents/` (default) |
+### 2.1 Google Antigravity (Native Host)
+* **Global Path**: `C:\Users\<User>\.gemini\config\plugins\egm`
+* **Workspace Path**: `<workspace>/.agents/` or explicitly listed in `<workspace>/plugins.json`.
+* **Registration**: Antigravity automatically discovers `plugin.json`, mounting skills from `skills/` and subagent personas from `agents/`.
+* **Invocation**: Use slash commands in chat (e.g. `/egm-brainstorm`, `/egm-draft`, `/egm-review`) or let Antigravity dispatch personas via `invoke_subagent`.
 
-Persona prompts live in `agents/`, the directory Antigravity and Gemini CLI
-scan for subagents. Each persona has `name` and `description` frontmatter, so
-harnesses that load `agents/*.md` register them as named subagents
-(`egm-design`, `egm-zoom-out`, and so on).
+### 2.2 Gemini CLI
+* **Install Command**:
+  ```bash
+  gemini extensions install https://github.com/google/elephant-goldfish-model
+  ```
+* **Local Development Link**:
+  ```bash
+  gemini extensions link C:\Users\<User>\.gemini\config\plugins\egm
+  ```
+* **Invocation**: Run `gemini` in terminal and invoke commands `/egm-brainstorm`, `/egm-draft`, `/egm-review`.
 
-## Delegation
+### 2.3 Claude Code
+* **Plugin Configuration**: Recognized via `.claude-plugin/plugin.json`.
+* **Custom Slash Commands**: Discovered via `.claude/commands/` (`/egm-brainstorm`, `/egm-draft`, etc.).
+* **Install**: Clone or copy into project root or link `.claude-plugin/`.
 
-Skills say "spawn a subagent" and name a persona. Each harness maps that
-phrase to its own tool:
+### 2.4 Cursor
+* **Configuration**: Automatically loaded from `.cursor/rules/egm.mdc` and `.cursorrules`.
+* **Invocation**: Type `/egm-review` or `@rules egm` in Cursor Composer or Chat. Cursor's agent mode adopts the EGM constraints, finding contract, and review stages.
 
-| Harness | Subagent tool | Named personas | Nesting |
-| --- | --- | --- | --- |
-| Antigravity | `invoke_subagent` | Yes | Yes |
-| Gemini CLI | Subagents | Yes | Not verified |
+### 2.5 GitHub Copilot (VS Code)
+* **Configuration**: Located in `.github/copilot-instructions.md`.
+* **Invocation**: In VS Code GitHub Copilot Chat, reference commands like `/egm-review` or ask Copilot to apply the EGM Review Protocol to an active design document.
 
-Where a harness has no named persona, the skill spawns a general-purpose
-subagent and tells it to read `agents/<file>.md` first. If a harness cannot
-nest subagents, use direct dispatch instead of the synthesizer.
+### 2.6 OpenAI Codex
+* **Configuration**: Discovered via repository root `AGENTS.md`.
+* **Invocation**: Prompt Codex with specific workflow directives (e.g., "Run EGM Review on docs/designs/feature.md").
 
-A Goldfish review needs a fresh context. If a harness has no subagent tool,
-the review skills stop instead of running in the same context.
+### 2.7 Windsurf (Cascade)
+* **Configuration**: Automatically loaded via `.windsurfrules`.
+* **Invocation**: Mention the command in Cascade chat (e.g. `/egm-brainstorm` or `/egm-review`).
 
-## Support Status & Contributing Other Harnesses
+---
 
-Our initial release officially supports **Antigravity** and **Gemini CLI**. We welcome
-contributors who want to help add and verify support for other agent harnesses!
+## 3. Subagent Delegation & Fallback Protocol
 
-### Contributing Support for New Harnesses
+Skills say *"spawn a subagent"* and designate a persona (`egm-zoom-out`, `egm-design`, etc.). Each harness maps this instruction according to its capabilities:
 
-A harness counts as supported after `/egm-brainstorm`, `/egm-draft`, and
-`/egm-review` run end to end through its plugin install. When contributing
-support for another harness:
+1. **Native Named Personas (Antigravity & Gemini CLI)**: Invokes the subagent tool specifying the persona name directly.
+2. **Generic Subagents**: Where named personas are not natively registered, the orchestrator spawns a general-purpose subagent and instructs it to read the corresponding file in `agents/<name>.md` before auditing.
+3. **Sequential Fallback**: Where subagent spawning or independent context windows are unsupported, the agent executes clearly labeled sequential review passes within the primary conversation. Concurrency or independence is never claimed if it was not physically executed.
 
-1. Add the appropriate manifest or configuration file to the repository root
-   (e.g., matching the harness's plugin/extension standard).
-2. Document install steps, manifest mapping, and delegation mechanics in this guide
-   (`docs/harnesses.md`).
-3. Verify that `/egm-brainstorm`, `/egm-draft`, and `/egm-review` run end to end,
-   and attach verification notes or execution transcripts in your Pull Request description
-   (as outlined in the [Pull Request Template](../.github/PULL_REQUEST_TEMPLATE.md)).
+---
+
+## 4. Standard Review Finding Contract (RFC-001)
+
+All review skills and personas adhere to the universal 11-field finding contract defined in [`resources/finding_contract.md`](../resources/finding_contract.md):
+* `id`, `title`, `severity`, `category`, `location`, `evidence`, `reasoning`, `impact`, `recommendation`, `confidence`, `status`.

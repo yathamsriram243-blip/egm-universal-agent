@@ -3,156 +3,105 @@ name: egm-review-loop
 license: Apache-2.0
 disable-model-invocation: true
 description: >-
-  Executes the Antagonistic-Review process from the Elephant-Goldfish
-  Model (EGM) via an automated multi-agent review loop to audit documents
-  against qualitative standards and structural templates, and automatically
-  apply approved fixes. Use when reviewing design docs, READMEs, feature
-  specifications, implementation plans, or verifying document completeness
-  and tone.
+  Concurrent review-subagent dispatch engine for the Elephant-Goldfish Model (EGM).
+  Coordinates isolated Goldfish reviewers across targeted scopes, aggregates findings,
+  and handles both direct and hierarchical dispatch with sequential fallback.
 ---
 
-# Goldfish Review: Loop (Orchestration Driver)
+# EGM Review Loop: Concurrent Subagent Dispatch Engine
 
 ## Overview
 
-This skill acts as the central orchestration engine driving the multi-agent
+This skill acts as the central orchestration engine driving the concurrent Goldfish
 review loop. It coordinates two distinct agent memory models:
 
 *   **The Goldfish (Adversarial Auditors)**: Subagents spawned in isolated,
-    fresh context windows to catch unstated assumptions without historical bias.
+    fresh context windows to audit documents without historical bias.
 *   **The Elephant (Persistent Resolver)**: The primary agent context holding
-    institutional knowledge to evaluate findings and apply approved repairs.
+    system history to evaluate findings, triage feedback, and apply approved repairs.
 
-The driver manages argument intake, resolves paths for reviewers and standards,
-unconditionally re-parses target line ranges before every iteration, spawns
-concurrent specialized Goldfish auditors based on configuration, and coordinates
-with the Elephant context to resolve findings.
+The engine manages scope intake, resolves personas and standards, dynamically
+re-calculates line ranges before each cycle, selects suitable review lenses,
+and executes concurrent dispatch with honest reporting of coverage.
 
-## Delegation
+## Delegation & Dispatch Modes
 
-A Goldfish runs in a fresh context with no conversation history. Spawn each
-subagent with your harness's subagent tool (Antigravity: `invoke_subagent`;
-Gemini CLI: subagents). Each subagent is defined in `agents/<file>.md`, and its
-frontmatter `name` (for example `egm-zoom-out`) is the subagent type to request
-where your harness registers named subagents. Otherwise spawn a general-purpose
-subagent and tell it to read that persona file first. Pass the prompt verbatim
-and wait for the report. If your harness cannot nest subagents,
-use direct dispatch instead of the synthesizer. See `docs/harnesses.md`.
-If your harness has no subagent tool, stop and tell the user: a review in the same 
-context is not a Goldfish review.
+Spawn each subagent with your harness's subagent tool (Antigravity: `invoke_subagent`;
+Gemini CLI: subagents).
+
+1.  **Direct Dispatch (Flat Swarm)**: The orchestrator invokes individual review
+    personas directly in parallel (`egm-zoom-out`, `egm-comprehension`, `egm-design`,
+    `egm-implementation-readiness`, `egm-codebase-details`, `egm-structural`, `egm-style`).
+    Best suited when the host supports flat concurrency and root token budgets permit.
+2.  **Hierarchical Dispatch (Synthesizer)**: The orchestrator dispatches an intermediate
+    coordinator (`egm-synthesizer` at `agents/synthesizer.md`), which manages the swarm,
+    deduplicates raw feedback, offloads context, and writes the consolidated report artifact.
+    Use this when the host supports subagent nesting to keep the primary conversation clean.
+3.  **Sequential Fallback Protocol**: If subagent execution is unavailable or unsupported on
+    the host, perform clearly labeled sequential reviews in the current context. Never claim
+    concurrency or independence that did not occur.
 
 ## Inputs
 
-The caller or user provides exactly these parameters:
+The caller or user provides these parameters:
 
-*   **`TargetFile`**: Absolute or relative path to target document.
-*   **`SemanticTarget`**: Descriptive targeting string (e.g., *"Target the H4
-    block with SS-ID 'S1.12'"*), or `full file`.
-*   **`Reviewers`**: List of reviewer names (shortnames or paths).
-*   **`Standards`**: Mapping of reviewer names to standard names (shortnames or
-    paths).
-*   **`GoldfishContext`**: A reading list (source files, directories, or
-    documentation URLs) fed to reviewers to establish their baseline.
+*   **`TargetFile`**: Absolute or relative path to the target document (Required).
+*   **`SemanticTarget`**: Descriptive targeting string (e.g. *"Target the H2 block 'Architecture'"*) or `full file`.
+*   **`Reviewers`**: List of reviewer names (shortnames or paths). Defaults to recommended personas for the document type.
+*   **`Standards`**: Mapping of reviewer names to standard names in `resources/document_standards/`.
+*   **`GoldfishContext`**: A reading list (source files, directories, or documentation) fed to reviewers.
 
-## Path & Standard Resolution Logic
+## Reviewer Selection Matrix
 
-When resolving names in `Reviewers` and `Standards`:
+Select suitable review personas instead of dispatching every agent unnecessarily:
 
-*   **Reviewer Shortnames**: Map reviewer shortname (e.g., `design_critic`,
-    `structural`, `style`, `implementation_readiness`,
-    `codebase_details`, `comprehension`, `zoom_out`) to `agents/{name}.md`.
-    The persona file defines the reviewer's core mandates, audit vectors, and
-    output format.
-*   **Standard Shortnames**: Map standard shortname (e.g., `feature-spec-standard`,
-    `implementation-readiness-standard`, `zoom-out-standard`, `heilmeier-standard`,
-    `re-implementation-standard`) to `resources/document_standards/{name}.md`.
-*   **Custom Paths**: If the name contains a slash (`/`), treat it as an
-    absolute or workspace-relative path and read it directly.
+| Document Type | Recommended Primary Reviewers | Standards Applied |
+| :--- | :--- | :--- |
+| **Concept Brief / RFC** | `egm-zoom-out`, `egm-design`, `egm-comprehension` | `resources/document_standards/zoom-out-standard.md`, `resources/document_standards/heilmeier-standard.md` |
+| **Feature Specification** | `egm-zoom-out`, `egm-design`, `egm-structural`, `egm-style` | `resources/document_standards/feature-spec-standard.md`, `resources/document_standards/zoom-out-standard.md` |
+| **Implementation Plan** | `egm-implementation-readiness`, `egm-codebase-details`, `egm-style` | `resources/document_standards/implementation-readiness-standard.md` |
+| **Full Architecture Doc** | Full Swarm (Phased or Hierarchical) | All applicable standards |
 
 ## Execution Workflow
 
-### Step 1: Intake & Configuration UX
+### Step 1: Intake & Targeted Scoping
 
-Evaluate the provided inputs (`TargetFile`, `SemanticTarget`, `Reviewers`,
-`Standards`, `GoldfishContext`).
+1.  Inspect provided inputs (`TargetFile`, `SemanticTarget`, `Reviewers`, `Standards`, `GoldfishContext`).
+2.  If `TargetFile` is missing, prompt the user in chat.
+3.  Bind reviewer selection according to the Reviewer Selection Matrix. Display the consolidated
+    plan and confirm with the user before launching workers.
 
-1.  **Identify Missing Inputs**: Determine which of the required parameters are
-    missing.
-2.  **Interactive Onboarding**:
-    *   If **all** inputs are present, proceed to Step 2.
-    *   If **some or all** inputs are missing, interactively prompt the user
-        **only for the missing inputs**, one at a time via chat messages.
-3.  **Reviewer Recommendations**:
-    *   *Feature Specs*: Recommend `design_critic` (mapped to
-        `resources/document_standards/feature-spec-standard.md`) and
-        `structural` (mapped to `resources/document_standards/feature-spec-standard.md`).
-    *   *Implementation Plans*: Recommend `implementation_readiness`
-        (mapped to `resources/document_standards/implementation-readiness-standard.md`)
-        and `codebase_details`.
-4.  **Confirm Configuration**: Display the consolidated plan (Target, Reviewers,
-    and mapped Standards) and ask the user to confirm before proceeding.
+### Step 2: The Concurrent Review Loop
 
-### Step 2: The Sharpening Loop (Iterative Cycle)
+#### 2.1 Unconditional Target Line Resolution
+Before every iteration, read `TargetFile` and locate the `SemanticTarget` header or anchor
+to determine updated absolute line numbers ($L_{start}..L_{end}$). This ensures 100% targeting
+accuracy across editing iterations.
 
-Execute the following sequence in a continuous loop:
+#### 2.2 Swarm Execution & Coverage Monitoring
+1.  Launch the assigned review personas using either **Hierarchical Dispatch** or **Direct Dispatch**.
+2.  Provide each reviewer with a focused assignment, the resolved line bounds, and relevant context.
+3.  **Honest Coverage Reporting**: Monitor subagent completion. If a subagent times out, fails to spawn,
+    or encounters an error, record the incident explicitly under Coverage Limitations. Never fabricate
+    results for an agent that failed to run.
 
-#### 2.1 Unconditional Target Resolution
+#### 2.3 Finding Ingestion & Schema Validation
+All findings MUST adhere to the 11-field Standard Review-Finding Contract (`resources/finding_contract.md`):
+* `id`, `title`, `severity`, `category`, `location`, `evidence`, `reasoning`, `impact`, `recommendation`, `confidence`, `status`.
 
-Before every iteration, unconditionally re-scan `TargetFile` by reading it
-and using the stable `SemanticTarget` string (e.g., locating the target header) to
-dynamically determine the updated absolute start and end line numbers. This
-ensures absolute accuracy even if the file was edited in prior rounds. (If `full
-file` mode is specified, confirm full-file line bounds).
+#### 2.4 Aggregated Resolution Hand-Off
+1.  Pass the validated findings list to **`/egm-resolve`** in the primary Elephant context.
+2.  Present the interactive resolution gate to the user.
+3.  Execute approved edits on `TargetFile` using your file-editing tool.
 
-#### 2.2 Review Swarm Execution
+#### 2.5 Iteration Boundary & Turn Taking
+After resolution, check if any unaddressed critical/high findings remain:
+* If findings remain and user requests re-audit: Loop back to Step 2.1 (re-scan line bounds).
+* If zero findings remain or user concludes: Exit cleanly to parent workflow or chat summary.
 
-1.  **Launch Subagent Swarm**:
-    Spawn subagents to execute the review:
-    *   **Hierarchical Dispatch (Synthesizer)**: Spawn the intermediate
-        synthesizer subagent (`agents/synthesizer.md` / `egm-synthesizer`).
-        The synthesizer spawns the Goldfish review swarm in
-        parallel, deduplicates findings, writes the report artifact, and
-        returns a single summary message to avoid context pollution in the root
-        conversation.
-    *   **Direct Dispatch (Flat Swarm)**: Alternatively, spawn each requested
-        reviewer subagent in `Reviewers` directly.
-        Instruct each subagent to first read its persona definition in
-        `agents/{name}.md`, then audit `TargetFile` at the resolved line range
-        against its designated standard in `resources/document_standards/`,
-        supplying `GoldfishContext`.
-    *   Each reviewer produces findings with severity (🔴 Blocker, 🟡 Major, 🟢
-        Nit), line numbers, discrepancy descriptions, and rationales.
-2.  **Consolidate Findings**: Collect all findings across reviewers into a single
-    flat `FindingsList`.
+### Step 3: Completion Deliverable
 
-#### 2.3 Aggregated Resolution Hand-off
-
-1.  Pass `TargetFile`, the active line range, and the aggregated `FindingsList`
-    to the **`egm-resolve`** workflow.
-2.  Execute the resolution workflow in the primary Elephant context:
-    *   Categorize findings into `CONTEST` vs. `PROPOSE FIX`.
-    *   Save `goldfish_review_report.md` with your file-writing tool.
-    *   Present the interactive decision gate (Auto accept, Continue, Interactive
-        breakdown).
-    *   Apply approved text repairs to `TargetFile` using your file-editing tool.
-
-#### 2.4 Iteration Check & Turn Boundary
-
-The cycle repeats until reviewers report zero remaining findings or the user
-explicitly halts it.
-
-**Crucial Turn-Taking Requirement**: After the resolution phase finishes for a
-given round, the loop driver **MUST respect the turn-taking checkpoint in
-`egm-resolve`**. The driver must remain idle across human turns,
-only looping back to Step 2.1 when the user explicitly confirms they wish to run
-another round of review.
-
-### Step 3: Output Boundary & Final Checkpoint
-
-Upon successful completion (e.g., zero findings remaining or manual halt):
-
-*   **Programmatic Callers**: If running as a subflow of `egm-review`, exit
-    cleanly to hand execution back to the parent workflow.
-*   **Manual Invocations**: Output a summary of completion in chat: *"The review
-    loop has completed with zero remaining issues. Would you like to proceed to
-    the next stage, or do you have any final questions?"*
+Write findings report to `goldfish_review_report.md` using your file-writing tool and output:
+* Subagents dispatched and dispatch mode (Direct, Hierarchical, or Sequential Fallback).
+* Coverage limitations or agent failures (if any).
+* Severity breakdown and link to `goldfish_review_report.md`.

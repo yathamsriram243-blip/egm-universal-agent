@@ -3,62 +3,97 @@ name: egm-drift-report
 license: Apache-2.0
 disable-model-invocation: true
 description: >-
-  Runs drift detection on all design documents to check for document and
-  code consistency. Produces an actionable report with differences. Use when the
-  user asks to detect drift or check for consistency across all design documents
-  or READMEs in a directory.
+  Detects divergence between authoritative design specifications and live codebase implementation.
+  Produces an actionable, structured drift report with file and symbol evidence without mutating code.
 ---
 
-# Detect Drift In Designs and Code
+# EGM Drift Report: Specification-to-Code Drift Detector
 
-When the user asks to detect drift across all designs or a set of READMEs, the
-goal is to identify all instances where the codebase has diverged or failed to
-implement the specifications described by those designs or READMEs.
+## Overview
 
-1.  **Check Input**: Verify a directory containing design documents or READMEs
-    is provided. If not provided, ask the user to specify the target directory.
-2.  **List Documents**: List all files in the design directory.
-3.  **Analyze**: For EACH design document:
+When specifications and codebase reality diverge, systems accumulate hidden debt and developer
+confusion. This skill systematically audits checked-in design specifications, architecture
+contracts, and READMEs against live source code to detect and report drift.
 
-    *   **Contextualize**: Read the design document. Identify the intent,
-        proposed changes, and specific filenames/symbols mentioned.
-    *   **Locate Source**: Find the corresponding source code files in the
-        source tree. If paths aren't explicit, use code search or grep to
-        locate the relevant classes, functions, or API endpoints mentioned in
-        the doc. Prompt the user to add missing links to the document to make
-        future detection cheaper.
-    *   **Verify**: Read the current state of those source files.
-    *   **Detect Drift**: Compare the design vs. reality. Look specifically for:
-        *   Missing Features: Logic described in the doc but absent in the code.
-        *   Incomplete Models: Dataclasses/Classes/Structs/Protos missing fields
-            specified in the design.
-        *   Logic Shortcuts: Hardcoded values where dynamic logic was planned.
-        *   Architectural Divergence: Implementation using different
-            patterns/libraries than proposed.
-    *   **Filter**: Report ONLY the differences. Do not describe what is working
-        or what matches. If the code matches the design perfectly, output "No
-        drift detected."
+## Execution Constraints & Safety Rules
 
-4.  **Report**: Produce a single report listing all discrepancies found.
+1.  **Read-Only Operations (STRICT)**: You are **STRICTLY FORBIDDEN** from modifying, patching,
+    or refactoring code or documentation during drift detection. Report discrepancies only.
+    Remediation is deferred to a separate, user-authorized `/egm-resolve` session.
+2.  **Concrete Evidence Required**: Every reported drift MUST cite the exact specification file
+    and section alongside the concrete source code file, class, function, or line range.
+3.  **Distinguish Confirmed Drift from Uncertainty**: Distinguish between confirmed drift
+    (explicit contract violation) and unconfirmed drift caused by incomplete context or dynamic dispatch.
+4.  **Avoid Trivia**: Do not treat every minor internal implementation detail (e.g. local loop variables)
+    as a design violation. Focus on architectural contracts, public APIs, models, data flows, and invariants.
 
-    *   Append the analysis for each file to `{YYYY-MM-DD}_DRIFT_REPORT.md`
-        using your file-writing tool.
-    *   Strict Format:
+## Inputs
 
-        ```markdown
-        ## <DESIGN_DOC_NAME>
+*   **`DesignPath`**: Path to a specific design document or directory of design docs/READMEs (e.g. `docs/designs/`). If omitted, prompt the user.
+*   **`SourceRoot`** (Optional): Path to the codebase root (defaults to workspace root).
 
-        <Bulleted list of specific divergences found>
-        <Or "No drift detected">
-        ```
+## Execution Workflow
 
-5.  **Guidance**
+### Step 1: Discover Authoritative Specifications
 
-    -   Be rigorous. If a design doc mentions a specific object, field or file
-        name and the code doesn't have it, that is a reportable drift. Double
-        check for coverage. If there is some part of the logic that is not
-        referenced in a design or README, this is a reportable drift.
-    -   Read files liberally to ensure you are looking at the current state
-        of the code, not relying on memory.
-    -   Process the files sequentially to ensure the tool output buffer doesn't
-        overflow.
+1.  Locate all design documents and contract files in `DesignPath`.
+2.  For each document, identify authoritative statements:
+    *   Public APIs, endpoints, and method signatures.
+    *   Data structures, models, schemas, and fields.
+    *   Architectural component boundaries and interaction flows.
+    *   Invariants, error handling rules, and acceptance criteria.
+
+### Step 2: Source Code Verification
+
+For each documented contract:
+1.  **Locate Source Files**: Trace referenced files, classes, and symbols in the live repository using code search.
+2.  **Verify Fidelity**:
+    *   **Missing Features**: Documented API endpoints, methods, or CLI commands absent from code.
+    *   **Incomplete Data Models**: Dataclasses, structs, or database models missing documented fields.
+    *   **Logic Divergence**: Hardcoded values or stub implementations where dynamic logic was specified.
+    *   **Contract Conflicts**: Parameter types, return types, or error conditions conflicting with the spec.
+    *   **Undocumented Behavior**: Critical public methods or side effects present in code but missing from docs.
+
+### Step 3: Classify & Structure Drift Findings
+
+Every finding MUST follow the 11-field Standard Review-Finding Contract (`resources/finding_contract.md`)
+and be classified by severity:
+* **Critical**: Security breach, data corruption hazard, or completely broken public contract.
+* **High**: Documented core feature missing or unhandled error state.
+* **Medium**: Field name drift, type inconsistency, or outdated architectural diagram.
+* **Low / Informational**: Minor nomenclature discrepancy or formatting inconsistency.
+
+### Step 4: Generate Deliverable Drift Report
+
+Write the report to `{YYYY-MM-DD}_DRIFT_REPORT.md` (e.g., `2026-10-23_DRIFT_REPORT.md`) in the working directory using your file-writing tool:
+
+```markdown
+# EGM Specification-to-Code Drift Report
+
+**Audit Date:** [YYYY-MM-DD]
+**Target Specifications:** `[DesignPath]`
+**Codebase Root:** `[SourceRoot]`
+
+## Executive Summary
+* **Total Specifications Audited:** [N]
+* **Confirmed Drifts:** [N] (Critical: [C], High: [H], Medium: [M], Low: [L])
+* **Uncertain / Incomplete Evidence:** [N]
+
+---
+
+## Drift Findings by Affected Contract
+
+### [[id]] [title]
+* **Severity**: [critical | high | medium | low | informational]
+* **Category**: correctness
+* **Affected Specification**: `[spec_file.md#Lstart-Lend]`
+* **Live Code Evidence**: `[src_file.py:Symbol#Lstart-Lend]`
+* **Discrepancy Description**: [Factual divergence observed]
+* **Reasoning**: [Why this drift causes operational, integration, or maintenance issues]
+* **Impact**: [System defect, API breakage, developer confusion]
+* **Recommended Correction**: [Update specification to reflect intentional change, or implement missing code]
+* **Confidence**: [high | medium | low]
+* **Status**: open
+```
+
+Notify the user in chat with the summary and report path.

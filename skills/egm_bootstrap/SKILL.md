@@ -50,18 +50,24 @@ If your harness has no subagent tool, run the scout steps inline.
     write or refactor any functional source code.
 2.  **VCS Isolation**: Do not perform any version control commits (`git commit`,
     `git add`). All filesystem changes must be written locally using standard
-    file-writing tools. Tracking
-    and submitting is deferred to the human user.
-3.  **Temporary File Isolation**: Parallel workers sharing the workspace must
-    perform all status tracking, check-pointing, and log writing in independent,
-    worker-specific directories outside the project repository workspace.
+    file-writing tools. Tracking and submitting is deferred to the human user.
+3.  **Temporary File Isolation & No Concurrent Overwrites**: Parallel workers sharing
+    the workspace must perform all status tracking, checkpointing, and draft writing
+    in independent, worker-specific directories outside the project repository workspace.
+    No concurrent workers may write to the same file simultaneously.
 4.  **Tool Usage (CRITICAL)**: Use your shell, file-reading, file-writing, and file-editing tools for directory discovery and contract/README
     generation. Adhere to clean Markdown formatting directly during generation
-    (standard headers, tables, and fenced code blocks). If a project markdown
-    formatter (e.g. `npx prettier --write`) is explicitly configured in the
-    repository, it may optionally be invoked.
-5.  **Subagent Delegation**: Spawn sub-orchestrator workers in parallel.
-6.  **Mandatory Safety Gate (CRITICAL)**: If you discover more than 15
+    (standard headers, tables, and fenced code blocks).
+5.  **Sensitive Files & Secrets Protection**: You MUST respect `.gitignore`, `.egmignore`,
+    and sensitive-file boundaries (`.env*`, `*.pem`, `id_rsa*`, `credentials*`).
+    You are STRICTLY FORBIDDEN from exposing secrets, tokens, or credentials in generated documentation.
+6.  **Preserve User-Authored Documentation**: NEVER overwrite existing user-authored documentation
+    without comparing changes and obtaining explicit user confirmation when `target_filename` is set or existing content exists.
+7.  **Deterministic & Grounded Generation**: Keep generated contracts deterministic to avoid
+    documentation churn. Ground all interface contracts strictly in verified code facts. Record
+    unresolved architectural questions rather than inventing answers. Detect contradictions
+    between generated documentation and existing authoritative specs.
+8.  **Mandatory Safety Gate (CRITICAL)**: If you discover more than 15
     subdirectories, you MUST immediately request user approval (using a structured question tool, if your harness has one, or plain chat) before proceeding with full-tree execution
     or unbounded subagent spawning.
 
@@ -381,7 +387,7 @@ If your harness has no subagent tool, run the scout steps inline.
 
     *   `question`: "Do you want to run the EGM Drift Report on the generated
         contract updates to check for consistency with the codebase?"
-    *   `options`: `["(Recommended) Yes, run drift report on modified contracts",
+    *   `options`: `["Yes, run drift report on modified contracts",
         "No, skip drift review"]`
     *   If the user selects "Yes", run the `egm-drift-report` skill targeting
         the modified contracts to verify that the documentation accurately
@@ -390,6 +396,19 @@ If your harness has no subagent tool, run the scout steps inline.
         contracts as a variant).
 
 6.  Terminate execution successfully.
+
+--------------------------------------------------------------------------------
+
+## Output Deliverables
+
+Upon completion, `/egm-bootstrap` MUST compile and report:
+
+1.  **Repository Map**: Complete hierarchical tree topology of audited directories and component packages.
+2.  **Architecture Overview**: High-altitude subsystem boundaries, entry points, and execution paths.
+3.  **Dependency Map**: Cross-module import dependencies, shared utilities, and external libraries.
+4.  **Key Contracts**: Generated or updated Peanuts (leaf package READMEs) and Hay (root blueprint contracts) documenting public interfaces, invariants, and side effects.
+5.  **Testing Guide**: Extracted verification commands and test targets mapped to modules.
+6.  **Documentation Gaps & Unresolved Questions**: Omitted modules, missing docstrings, and architectural ambiguities requiring human clarification.
 
 --------------------------------------------------------------------------------
 

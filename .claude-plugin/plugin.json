@@ -1,0 +1,14 @@
+{
+  "name": "egm",
+  "version": "0.1.0",
+  "description": "Elephant-Goldfish Model: Spec-Driven Development with deep-context drafting and adversarial Goldfish reviews.",
+  "commands": {
+    "egm-brainstorm": "commands/egm-brainstorm.md",
+    "egm-draft": "commands/egm-draft.md",
+    "egm-review": "commands/egm-review.md",
+    "egm-review-loop": "commands/egm-review-loop.md",
+    "egm-resolve": "commands/egm-resolve.md",
+    "egm-drift-report": "commands/egm-drift-report.md",
+    "egm-bootstrap": "commands/egm-bootstrap.md"
+  }
+}
