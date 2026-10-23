@@ -10,6 +10,14 @@
 
 ---
 
+<p align="center">
+  <img src="assets/elephant_tree.jpg" alt="The Elephant Behind the Tree — Context and Structure in EGM" width="460" />
+  <br>
+  <em><strong>"The Elephant behind the tree: Deep context memory anchored by clean architectural structure."</strong></em>
+</p>
+
+---
+
 ## 🚀 Overview / What is EGM Universal Agent?
 
 The **Elephant-Goldfish Model (EGM)** is an open-source methodology and framework for **Spec-Driven Development (SDD)** with autonomous AI coding agents. 
